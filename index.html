@@ -15,16 +15,21 @@
     <label for="youtube-url">YouTube Video URL:</label>
     <input type="text" id="youtube-url" placeholder="e.g., https://www.youtube.com/watch?v=...">
 
-    <!-- NEW: Padding Input Field -->
+    
     <label for="padding-input">Padding (in pixels ):</label>
     <input type="number" id="padding-input" value="0" min="0">
+
+
+    <label for="color-input">Background Color:</label>
+    <input type="color" id="color-input" value="#000000">
 
     <script>
         document.addEventListener('DOMContentLoaded', function () {
             
             var sdk = new window.sfdc.BlockSDK();
             var youtubeUrlInput = document.getElementById('youtube-url');
-            var paddingInput = document.getElementById('padding-input'); // NEW: Get padding input element
+            var paddingInput = document.getElementById('padding-input');
+            var colorInput = document.getElementById('color-input');
             var debounceTimeout;
 
             function getYouTubeId(url) {
@@ -40,25 +45,22 @@
                 return ID;
             }
 
-            // MODIFIED: Function now accepts padding value
-            function generateHtml(videoId, padding) {
+
+            function generateHtml(videoId, padding, backgroundColor) {
                 if (!videoId) {
                     return '<div style="padding:20px; text-align:center; font-family: Arial, sans-serif;">Insira o Link do Youtube</div>';
                 }
                 
                 const embedUrl = `https://www.youtube.com/embed/${videoId}?rel=0`;
                 const thumbnailUrl = `https://img.youtube.com/vi/${videoId}/0.jpg`;
-                const paddingValue = `${padding}px`; // Ensure the value has 'px' unit
+                const paddingValue = `${padding}px`; 
 
-                // MODIFIED: Styles now incorporate the dynamic padding value.
-                // The padding is applied to the outer wrapper, which affects both the thumbnail background
-                // and the iframe container.
+
                 const styles = `
                     <style>
                         .youtube-wrapper {
-                            /* NEW: Padding is added here */
                             padding: ${paddingValue};
-                            background-color: #000;
+                            background-color: ${backgroundColor};
                         }
                         .youtube-inner-wrapper {
                             position: relative;
@@ -84,8 +86,7 @@
                     </style>
                 `;
 
-                // MODIFIED: HTML structure now includes an outer and inner wrapper.
-                // The outer wrapper handles the padding, and the inner wrapper handles the responsive video.
+
                 return `
                     ${styles}
                     <div class="youtube-wrapper">
@@ -102,17 +103,19 @@
 
             function updateBlock() {
                 var url = youtubeUrlInput.value;
-                var padding = parseInt(paddingInput.value, 10) || 0; // NEW: Get padding value
+                var padding = parseInt(paddingInput.value, 10) || 0;
+                var backgroundColor = colorInput.value;
                 var videoId = getYouTubeId(url);
                 
-                // MODIFIED: Pass padding to the generateHtml function
-                var finalHtml = generateHtml(videoId, padding);
 
-                // MODIFIED: Save both URL and padding to SFMC data
+                var finalHtml = generateHtml(videoId, padding, backgroundColor);
+
+
                 sdk.setContent(finalHtml);
                 sdk.setData({ 
                     youtubeUrl: url,
-                    padding: padding 
+                    padding: padding,
+                    backgroundColor: backgroundColor
                 });
             }
 
@@ -121,7 +124,7 @@
                 debounceTimeout = setTimeout(updateBlock, 500);
             }
 
-            // MODIFIED: Retrieve saved padding value on load
+
             sdk.getData(function (data) {
                 if (data) {
                     if (data.youtubeUrl) {
@@ -130,13 +133,16 @@
                     if (data.padding) {
                         paddingInput.value = data.padding;
                     }
+                    if (data.backgroundColor) {
+                        colorInput.value = data.backgroundColor;
+                    }
                 }
                 updateBlock();
             });
 
-            // NEW: Add event listener for the padding input
             youtubeUrlInput.addEventListener('input', debounceUpdate);
             paddingInput.addEventListener('input', debounceUpdate);
+            colorInput.addEventListener('input', debounceUpdate);
         });
     </script>
 </body>
