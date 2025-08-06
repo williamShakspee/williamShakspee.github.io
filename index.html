@@ -3,7 +3,6 @@
 <head>
     <title>YouTube Block with CSS Preview</title>
     <meta charset="utf-8">
-    <meta name="block-icon" content="https://image.somosfuncional.com/lib/fe2a11737164057b731276/m/1/1264c0eb-5a3d-4bcd-a492-5a71b7428387.png">
     <style>
         body { font-family: Arial, sans-serif; margin: 0; padding: 20px; color: #333; }
         label { display: block; margin-bottom: 5px; font-weight: bold; }
@@ -13,17 +12,17 @@
     <script src="https://raw.githack.com/salesforce-marketingcloud/blocksdk/master/blocksdk.js"></script>
 </head>
 <body>
-    <label for="youtube-url">YouTube Video URL:</label>
+    <label for="youtube-url">Link do Youtube</label>
     <input type="text" id="youtube-url" placeholder="e.g., https://www.youtube.com/watch?v=...">
 
-    <label for="padding-input">Padding (in pixels ):</label>
+    <label for="padding-input">Espaçamento</label>
     <input type="number" id="padding-input" value="0" min="0">
 
-    <label for="color-input">Background Color:</label>
+    <label for="color-input">Cor do fundo</label>
     <input type="color" id="color-input" value="#000000">
 
-    <!-- MODIFIED: Replaced slider with a number input for max-width -->
-    <label for="max-width-input">Maximum Width (in pixels):</label>
+
+    <label for="max-width-input">Tamanho máximo</label>
     <input type="number" id="max-width-input" value="600" min="100">
 
     <script>
@@ -33,7 +32,7 @@
             var youtubeUrlInput = document.getElementById('youtube-url');
             var paddingInput = document.getElementById('padding-input');
             var colorInput = document.getElementById('color-input');
-            var maxWidthInput = document.getElementById('max-width-input'); // MODIFIED: Get the new input
+            var maxWidthInput = document.getElementById('max-width-input');
             var debounceTimeout;
 
             function getYouTubeId(url) {
@@ -49,17 +48,15 @@
                 return ID;
             }
 
-            // MODIFIED: Function now accepts maxWidth
             function generateHtml(videoId, padding, backgroundColor, maxWidth) {
                 if (!videoId) {
-                    return '<div style="padding:20px; text-align:center; font-family: Arial, sans-serif;">Insira o Link do Youtube</div>';
+                    return '<div style="padding:20px; text-align:center; font-family: Arial, sans-serif; color: #787878"> Adicione o link para visualizar a prévia</div>';
                 }
                 
                 const embedUrl = `https://www.youtube.com/embed/${videoId}?rel=0`;
                 const thumbnailUrl = `https://img.youtube.com/vi/${videoId}/0.jpg`;
                 const paddingValue = `${padding}px`;
 
-                // MODIFIED: CSS for .youtube-container now uses max-width in pixels for robust responsiveness
                 const styles = `
                     <style>
                         .youtube-container {
