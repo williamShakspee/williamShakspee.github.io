@@ -3,11 +3,11 @@
 <head>
     <title>YouTube Block with CSS Preview</title>
     <meta charset="utf-8">
-	<meta name="block-icon" content="https://image.somosfuncional.com/lib/fe2a11737164057b731276/m/1/1264c0eb-5a3d-4bcd-a492-5a71b7428387.png">
+    <meta name="block-icon" content="https://image.somosfuncional.com/lib/fe2a11737164057b731276/m/1/1264c0eb-5a3d-4bcd-a492-5a71b7428387.png">
     <style>
         body { font-family: Arial, sans-serif; margin: 0; padding: 20px; color: #333; }
         label { display: block; margin-bottom: 5px; font-weight: bold; }
-        input[type="text"] { width: 95%; padding: 8px; margin-bottom: 15px; border: 1px solid #ccc; border-radius: 4px; font-size: 14px; }
+        input[type="text"], input[type="number"] { width: 95%; padding: 8px; margin-bottom: 15px; border: 1px solid #ccc; border-radius: 4px; font-size: 14px; }
     </style>
     <script src="https://raw.githack.com/salesforce-marketingcloud/blocksdk/master/blocksdk.js"></script>
 </head>
@@ -15,11 +15,16 @@
     <label for="youtube-url">YouTube Video URL:</label>
     <input type="text" id="youtube-url" placeholder="e.g., https://www.youtube.com/watch?v=...">
 
+    <!-- NEW: Padding Input Field -->
+    <label for="padding-input">Padding (in pixels ):</label>
+    <input type="number" id="padding-input" value="0" min="0">
+
     <script>
-        document.addEventListener('DOMContentLoaded', function ( ) {
+        document.addEventListener('DOMContentLoaded', function () {
             
             var sdk = new window.sfdc.BlockSDK();
             var youtubeUrlInput = document.getElementById('youtube-url');
+            var paddingInput = document.getElementById('padding-input'); // NEW: Get padding input element
             var debounceTimeout;
 
             function getYouTubeId(url) {
@@ -35,29 +40,36 @@
                 return ID;
             }
 
-            function generateHtml(videoId) {
+            // MODIFIED: Function now accepts padding value
+            function generateHtml(videoId, padding) {
                 if (!videoId) {
                     return '<div style="padding:20px; text-align:center; font-family: Arial, sans-serif;">Insira o Link do Youtube</div>';
                 }
                 
                 const embedUrl = `https://www.youtube.com/embed/${videoId}?rel=0`;
                 const thumbnailUrl = `https://img.youtube.com/vi/${videoId}/0.jpg`;
+                const paddingValue = `${padding}px`; // Ensure the value has 'px' unit
 
-                // This CSS provides the responsive container for the iframe
-                // AND includes the magic preview logic.
+                // MODIFIED: Styles now incorporate the dynamic padding value.
+                // The padding is applied to the outer wrapper, which affects both the thumbnail background
+                // and the iframe container.
                 const styles = `
                     <style>
                         .youtube-wrapper {
+                            /* NEW: Padding is added here */
+                            padding: ${paddingValue};
+                            background-color: #000;
+                        }
+                        .youtube-inner-wrapper {
                             position: relative;
                             width: 100%;
                             height: 0;
                             padding-bottom: 56.25%; /* 16:9 aspect ratio */
-                            background-color: #000;
                             background-image: url(${thumbnailUrl} );
                             background-position: center;
                             background-size: cover;
                         }
-                        .youtube-wrapper iframe {
+                        .youtube-inner-wrapper iframe {
                             position: absolute;
                             top: 0;
                             left: 0;
@@ -66,33 +78,42 @@
                             border: 0;
                         }
                         /* This is the key: In the SFMC editor, hide the iframe and show the background image */
-                        .sfmc-canvas-wrapper .youtube-wrapper iframe {
+                        .sfmc-canvas-wrapper .youtube-inner-wrapper iframe {
                             display: none;
                         }
                     </style>
                 `;
 
-                // The final HTML structure.
+                // MODIFIED: HTML structure now includes an outer and inner wrapper.
+                // The outer wrapper handles the padding, and the inner wrapper handles the responsive video.
                 return `
                     ${styles}
                     <div class="youtube-wrapper">
-                        <iframe src="${embedUrl}"
-                                frameborder="0"
-                                allow="autoplay; accelerometer; encrypted-media; gyroscope; fullscreen; picture-in-picture"
-                                allowfullscreen>
-                        </iframe>
+                        <div class="youtube-inner-wrapper">
+                            <iframe src="${embedUrl}"
+                                    frameborder="0"
+                                    allow="autoplay; accelerometer; encrypted-media; gyroscope; fullscreen; picture-in-picture"
+                                    allowfullscreen>
+                            </iframe>
+                        </div>
                     </div>
                 `;
             }
 
             function updateBlock() {
                 var url = youtubeUrlInput.value;
+                var padding = parseInt(paddingInput.value, 10) || 0; // NEW: Get padding value
                 var videoId = getYouTubeId(url);
-                var finalHtml = generateHtml(videoId);
+                
+                // MODIFIED: Pass padding to the generateHtml function
+                var finalHtml = generateHtml(videoId, padding);
 
-                // We only need to set the content once.
+                // MODIFIED: Save both URL and padding to SFMC data
                 sdk.setContent(finalHtml);
-                sdk.setData({ youtubeUrl: url });
+                sdk.setData({ 
+                    youtubeUrl: url,
+                    padding: padding 
+                });
             }
 
             function debounceUpdate() {
@@ -100,14 +121,22 @@
                 debounceTimeout = setTimeout(updateBlock, 500);
             }
 
+            // MODIFIED: Retrieve saved padding value on load
             sdk.getData(function (data) {
-                if (data && data.youtubeUrl) {
-                    youtubeUrlInput.value = data.youtubeUrl;
+                if (data) {
+                    if (data.youtubeUrl) {
+                        youtubeUrlInput.value = data.youtubeUrl;
+                    }
+                    if (data.padding) {
+                        paddingInput.value = data.padding;
+                    }
                 }
                 updateBlock();
             });
 
+            // NEW: Add event listener for the padding input
             youtubeUrlInput.addEventListener('input', debounceUpdate);
+            paddingInput.addEventListener('input', debounceUpdate);
         });
     </script>
 </body>
