@@ -3,8 +3,8 @@
 <head>
     <title>YouTube Block with CSS Preview</title>
     <meta charset="utf-8">
+	<meta name="block-icon" content="https://image.somosfuncional.com/lib/fe2a11737164057b731276/m/1/1264c0eb-5a3d-4bcd-a492-5a71b7428387.png">
     <style>
-        /* UI for the editor panel */
         body { font-family: Arial, sans-serif; margin: 0; padding: 20px; color: #333; }
         label { display: block; margin-bottom: 5px; font-weight: bold; }
         input[type="text"] { width: 95%; padding: 8px; margin-bottom: 15px; border: 1px solid #ccc; border-radius: 4px; font-size: 14px; }
@@ -19,7 +19,7 @@
         document.addEventListener('DOMContentLoaded', function ( ) {
             
             var sdk = new window.sfdc.BlockSDK();
-			  sdk.setIcon('https://image.somosfuncional.com/lib/fe2a11737164057b731276/m/1/1264c0eb-5a3d-4bcd-a492-5a71b7428387.png' );
+			  sdk.setIcon('https://image.somosfuncional.com/lib/fe2a11737164057b731276/m/1/1264c0eb-5a3d-4bcd-a492-5a71b7428387.png');
             var youtubeUrlInput = document.getElementById('youtube-url');
             var debounceTimeout;
 
