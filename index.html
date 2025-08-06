@@ -10,7 +10,6 @@
         input[type="text"] { width: 95%; padding: 8px; margin-bottom: 15px; border: 1px solid #ccc; border-radius: 4px; font-size: 14px; }
         #status { font-style: italic; color: #555; }
     </style>
-    <!-- Using the reliable, raw GitHub link for the SDK -->
     <script src="https://raw.githack.com/salesforce-marketingcloud/blocksdk/master/blocksdk.js"></script>
 </head>
 <body>
@@ -39,71 +38,63 @@
                 return ID;
             }
 
-            // *** THIS IS THE MODIFIED PART ***
-            // This function now generates the responsive iframe HTML for a web page.
-            function generateWebHtml(videoId) {
-                if (!videoId) {
-                    return '<div style="padding:20px; text-align:center; font-family: Arial, sans-serif;">Please provide a valid YouTube URL.</div>';
-                }
-                
-                // The embed URL for YouTube. We can add parameters here if needed.
+            // Renders the full, interactive iframe for the final published page
+            function generateFinalHtml(videoId) {
                 const embedUrl = `https://www.youtube.com/embed/${videoId}?rel=0&autoplay=0&mute=0`;
-
-                // The CSS required for the responsive container.
-                // This will be placed in the <head> of the CloudPage by SFMC.
                 const responsiveCss = `
                     <style>
-                        .iframe-outer-wrapper {
-                            max-width: 800px; /* You can set a max-width for the video */
-                            margin: 0 auto; /* Center the container */
-                        }
-                        .iframe-container {
-                            position: relative;
-                            overflow: hidden;
-                            width: 100%;
-                            padding-top: 56.25%; /* 16:9 Aspect Ratio */
-                        }
-                        .iframe-container iframe {
-                            position: absolute;
-                            top: 0;
-                            left: 0;
-                            width: 100%;
-                            height: 100%;
-                            border: 0;
-                        }
-                    </style>
-                `;
-
-                // The final HTML structure including the CSS.
+                        .iframe-outer-wrapper { max-width: 800px; margin: 0 auto; }
+                        .iframe-container { position: relative; overflow: hidden; width: 100%; padding-top: 56.25%; }
+                        .iframe-container iframe { position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: 0; }
+                    </style>`;
                 return `
                     ${responsiveCss}
                     <div class="iframe-outer-wrapper">
                         <div class="iframe-container">
-                            <iframe src="${embedUrl}"
-                                    frameborder="0"
-                                    allow="autoplay; accelerometer; encrypted-media; gyroscope; fullscreen; picture-in-picture"
-                                    allowfullscreen>
-                            </iframe>
+                            <iframe src="${embedUrl}" frameborder="0" allow="autoplay; accelerometer; encrypted-media; gyroscope; fullscreen; picture-in-picture" allowfullscreen></iframe>
                         </div>
-                    </div>
-                `;
+                    </div>`;
             }
 
-            function updateBlock( ) {
+            // Renders a simple, non-interactive thumbnail for the SFMC preview canvas
+            function generatePreviewHtml(videoId ) {
+                return `
+                    <div style="position: relative; max-width: 800px; margin: 0 auto;">
+                        <img src="https://img.youtube.com/vi/${videoId}/0.jpg" alt="YouTube Video Preview" style="width:100%; height:auto; display:block; border:0;">
+                        <div style="position:absolute; top:0; left:0; width:100%; height:100%; display:flex; align-items:center; justify-content:center; background-color:rgba(0,0,0,0.2 );">
+                            <img src="https://i.imgur.com/H6T5m8V.png" alt="Play Button" style="width:80px; height:auto; opacity:0.9;">
+                        </div>
+                        <div style="position:absolute; bottom:0; left:0; width:100%; text-align:center; background-color:rgba(0,0,0,0.6 ); color:white; padding:5px 0; font-family:Arial, sans-serif; font-size:12px;">
+                            Live video will be shown on the published page.
+                        </div>
+                    </div>`;
+            }
+
+            function updateBlock() {
                 var url = youtubeUrlInput.value;
                 var videoId = getYouTubeId(url);
                 
-                if (videoId) {
-                    statusDiv.textContent = 'Embed code updated.';
-                } else if (url) {
-                    statusDiv.textContent = 'Invalid YouTube URL.';
-                } else {
-                    statusDiv.textContent = 'Enter a URL to generate the embed code.';
+                if (!videoId) {
+                    statusDiv.textContent = 'Please enter a valid YouTube URL.';
+                    sdk.setContent('<div style="padding:20px; text-align:center; font-family: Arial, sans-serif;">Please provide a valid YouTube URL.</div>');
+                    sdk.setData({ youtubeUrl: url });
+                    return;
                 }
 
-                var webHtml = generateWebHtml(videoId);
+                statusDiv.textContent = 'Embed code updated.';
+                
+                // *** THE CORE LOGIC ***
+                // Generate the appropriate HTML for the context
+                var previewHtml = generatePreviewHtml(videoId);
+                var finalHtml = generateFinalHtml(videoId);
 
-                sdk.setContent(webHtml);
+                // Set the content for the PREVIEW canvas
+                sdk.setContent(previewHtml);
+                
+                // Set the content for the FINAL published page
+                sdk.setSuperContent(finalHtml);
+
+                // Save the data for re-editing
                 sdk.setData({ youtubeUrl: url });
             }
 
