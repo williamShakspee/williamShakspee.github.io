@@ -8,6 +8,7 @@
         body { font-family: Arial, sans-serif; margin: 0; padding: 20px; color: #333; }
         label { display: block; margin-bottom: 5px; font-weight: bold; }
         input[type="text"], input[type="number"] { width: 95%; padding: 8px; margin-bottom: 15px; border: 1px solid #ccc; border-radius: 4px; font-size: 14px; }
+        input[type="color"] { width: 60px; height: 30px; padding: 2px; margin-bottom: 15px; border: 1px solid #ccc; border-radius: 4px; vertical-align: middle; }
     </style>
     <script src="https://raw.githack.com/salesforce-marketingcloud/blocksdk/master/blocksdk.js"></script>
 </head>
@@ -15,13 +16,15 @@
     <label for="youtube-url">YouTube Video URL:</label>
     <input type="text" id="youtube-url" placeholder="e.g., https://www.youtube.com/watch?v=...">
 
-    
     <label for="padding-input">Padding (in pixels ):</label>
     <input type="number" id="padding-input" value="0" min="0">
 
-
     <label for="color-input">Background Color:</label>
     <input type="color" id="color-input" value="#000000">
+
+    <!-- MODIFIED: Replaced slider with a number input for max-width -->
+    <label for="max-width-input">Maximum Width (in pixels):</label>
+    <input type="number" id="max-width-input" value="600" min="100">
 
     <script>
         document.addEventListener('DOMContentLoaded', function () {
@@ -30,6 +33,7 @@
             var youtubeUrlInput = document.getElementById('youtube-url');
             var paddingInput = document.getElementById('padding-input');
             var colorInput = document.getElementById('color-input');
+            var maxWidthInput = document.getElementById('max-width-input'); // MODIFIED: Get the new input
             var debounceTimeout;
 
             function getYouTubeId(url) {
@@ -45,19 +49,24 @@
                 return ID;
             }
 
-
-            function generateHtml(videoId, padding, backgroundColor) {
+            // MODIFIED: Function now accepts maxWidth
+            function generateHtml(videoId, padding, backgroundColor, maxWidth) {
                 if (!videoId) {
                     return '<div style="padding:20px; text-align:center; font-family: Arial, sans-serif;">Insira o Link do Youtube</div>';
                 }
                 
                 const embedUrl = `https://www.youtube.com/embed/${videoId}?rel=0`;
                 const thumbnailUrl = `https://img.youtube.com/vi/${videoId}/0.jpg`;
-                const paddingValue = `${padding}px`; 
+                const paddingValue = `${padding}px`;
 
-
+                // MODIFIED: CSS for .youtube-container now uses max-width in pixels for robust responsiveness
                 const styles = `
                     <style>
+                        .youtube-container {
+                            max-width: ${maxWidth}px;
+                            width: 100%;
+                            margin: 0 auto;
+                        }
                         .youtube-wrapper {
                             padding: ${paddingValue};
                             background-color: ${backgroundColor};
@@ -66,7 +75,7 @@
                             position: relative;
                             width: 100%;
                             height: 0;
-                            padding-bottom: 56.25%; /* 16:9 aspect ratio */
+                            padding-bottom: 56.25%;
                             background-image: url(${thumbnailUrl} );
                             background-position: center;
                             background-size: cover;
@@ -79,23 +88,24 @@
                             height: 100%;
                             border: 0;
                         }
-                        /* This is the key: In the SFMC editor, hide the iframe and show the background image */
                         .sfmc-canvas-wrapper .youtube-inner-wrapper iframe {
                             display: none;
                         }
                     </style>
                 `;
 
-
+                // The HTML structure remains the same, but is now controlled by the new CSS
                 return `
                     ${styles}
-                    <div class="youtube-wrapper">
-                        <div class="youtube-inner-wrapper">
-                            <iframe src="${embedUrl}"
-                                    frameborder="0"
-                                    allow="autoplay; accelerometer; encrypted-media; gyroscope; fullscreen; picture-in-picture"
-                                    allowfullscreen>
-                            </iframe>
+                    <div class="youtube-container">
+                        <div class="youtube-wrapper">
+                            <div class="youtube-inner-wrapper">
+                                <iframe src="${embedUrl}"
+                                        frameborder="0"
+                                        allow="autoplay; accelerometer; encrypted-media; gyroscope; fullscreen; picture-in-picture"
+                                        allowfullscreen>
+                                </iframe>
+                            </div>
                         </div>
                     </div>
                 `;
@@ -105,17 +115,19 @@
                 var url = youtubeUrlInput.value;
                 var padding = parseInt(paddingInput.value, 10) || 0;
                 var backgroundColor = colorInput.value;
+                var maxWidth = parseInt(maxWidthInput.value, 10) || 600; // MODIFIED: Read from maxWidthInput
                 var videoId = getYouTubeId(url);
                 
+                // MODIFIED: Pass maxWidth to the generateHtml function
+                var finalHtml = generateHtml(videoId, padding, backgroundColor, maxWidth);
 
-                var finalHtml = generateHtml(videoId, padding, backgroundColor);
-
-
+                // MODIFIED: Save maxWidth to SFMC data
                 sdk.setContent(finalHtml);
                 sdk.setData({ 
                     youtubeUrl: url,
                     padding: padding,
-                    backgroundColor: backgroundColor
+                    backgroundColor: backgroundColor,
+                    maxWidth: maxWidth
                 });
             }
 
@@ -124,7 +136,7 @@
                 debounceTimeout = setTimeout(updateBlock, 500);
             }
 
-
+            // MODIFIED: Retrieve saved maxWidth value on load
             sdk.getData(function (data) {
                 if (data) {
                     if (data.youtubeUrl) {
@@ -136,13 +148,18 @@
                     if (data.backgroundColor) {
                         colorInput.value = data.backgroundColor;
                     }
+                    if (data.maxWidth) {
+                        maxWidthInput.value = data.maxWidth;
+                    }
                 }
                 updateBlock();
             });
 
+            // MODIFIED: Added event listener for the new maxWidthInput
             youtubeUrlInput.addEventListener('input', debounceUpdate);
             paddingInput.addEventListener('input', debounceUpdate);
             colorInput.addEventListener('input', debounceUpdate);
+            maxWidthInput.addEventListener('input', debounceUpdate);
         });
     </script>
 </body>
