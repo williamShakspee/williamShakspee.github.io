@@ -7,75 +7,87 @@
     <script src="https://unpkg.com/blocksdk@1.2.2/blocksdk.js"></script>
 </head>
 <body>
-    <!-- This is the UI your user will see in the Content Builder editor -->
     <div class="container" style="padding: 20px;">
         <label for="youtube-url">YouTube Video URL:</label>
-        <input type="text" id="youtube-url" style="width: 100%; margin-top: 5px;" placeholder="https://www.youtube.com/watch?v=dQw4w9WgXcQ" />
+        <input type="text" id="youtube-url" style="width: 100%; margin-top: 5px;" placeholder="https://www.youtube.com/watch?v=..." />
     </div>
 
     <script>
         // Initialize the SDK
         var sdk = new window.sfdc.BlockSDK( );
+        var app = {}; // Use a simple object to hold our app's state
 
-        // Get the initial content from SFMC when the block loads
-        sdk.getData(function (data) {
-            // 'data' is what we saved last time. If it exists, populate our input.
-            if (data.youtubeUrl) {
-                $('#youtube-url').val(data.youtubeUrl);
-            }
-            // Call updateBlock to render the initial preview
-            updateBlock(data.youtubeUrl);
-        });
-
-        // Function to handle updating the block content
-        function updateBlock(url) {
+        // This is the main function that generates the email-ready HTML
+        function createBlockContent(url) {
             if (!url) {
-                // If there's no URL, show a placeholder message
-                sdk.setContent('<div>Please enter a YouTube URL to see the video.</div>');
-                sdk.setData({ youtubeUrl: '' }); // Clear saved data
-                return;
+                return '<div>Please enter a YouTube URL to see the video.</div>';
             }
 
             // Extract the YouTube Video ID from the URL
-            // This regex handles both 'watch?v=' and 'youtu.be/' formats
             let videoId = '';
-            const urlObj = new URL(url);
-            if (urlObj.hostname === 'youtu.be') {
-                videoId = urlObj.pathname.slice(1);
-            } else {
-                videoId = urlObj.searchParams.get('v');
+            try {
+                const urlObj = new URL(url);
+                if (urlObj.hostname === 'youtu.be') {
+                    videoId = urlObj.pathname.slice(1);
+                } else if (urlObj.hostname.includes('youtube.com')) {
+                    videoId = urlObj.searchParams.get('v');
+                }
+            } catch (e) {
+                // If the URL is invalid, catch the error
+                videoId = null;
             }
 
             if (!videoId) {
-                sdk.setContent('<div>Invalid YouTube URL. Please check and try again.</div>');
-                return;
+                return '<div>Invalid or incomplete YouTube URL. Please check and try again.</div>';
             }
 
-            // This is the HTML that will be inserted into the email
-            const content = `
-                <table cellpadding="0" cellspacing="0" width="100%" role="presentation" style="min-width: 100%; " class="stylingblock-content-wrapper">
+            // This is the final HTML that will be inserted into the email
+            return `
+                <table cellpadding="0" cellspacing="0" width="100%" role="presentation" style="min-width: 100%;" class="stylingblock-content-wrapper">
                     <tr>
-                        <td class="stylingblock-content-wrapper camarker-inner">
-                            <a href="${url}" title="YouTube Video" target="_blank">
-                                <img src="https://img.youtube.com/vi/${videoId}/0.jpg" alt="YouTube Video Thumbnail" width="100%" style="display: block;">
+                        <td class="stylingblock-content-wrapper camarker-inner" align="center">
+                            <a href="${url}" title="YouTube Video" target="_blank" style="text-decoration: none;">
+                                <img src="https://img.youtube.com/vi/${videoId}/0.jpg" alt="YouTube Video Thumbnail" width="100%" style="max-width: 600px; display: block; border: 0; height: auto;">
                             </a>
                         </td>
                     </tr>
                 </table>
             `;
-
-            // Send the generated HTML to SFMC to be displayed in the email
-            sdk.setContent(content );
-
-            // Save the URL so it can be retrieved next time the block is edited
-            sdk.setData({ youtubeUrl: url });
         }
 
-        // --- Event Listeners ---
-        // Use 'input' to react instantly as the user types
-        $('#youtube-url').on('input', function() {
-            const url = $(this).val();
-            updateBlock(url);
+        // This function is called every time the input value changes
+        function onInputValueChange( ) {
+            // Get the current URL from the input field
+            app.youtubeUrl = $('#youtube-url').val();
+            
+            // Generate the HTML content from the URL
+            var content = createBlockContent(app.youtubeUrl);
+            
+            // Update the block's preview in the editor
+            sdk.setContent(content);
+
+            // **CRUCIAL:** Save the data that the block needs to remember for the next time it's opened.
+            // This is what populates the input field when you re-edit the block.
+            sdk.setData({ youtubeUrl: app.youtubeUrl });
+        }
+
+        // --- SDK Initialization ---
+        // This is the entry point. SFMC will fire 'sdkReady' when the block is loaded and ready.
+        window.sfdc.interaction.on('sdkReady', function () {
+            
+            // 1. Get the data that was saved last time
+            sdk.getData(function (data) {
+                if (data && data.youtubeUrl) {
+                    // If we have saved data, populate the input field
+                    app.youtubeUrl = data.youtubeUrl;
+                    $('#youtube-url').val(app.youtubeUrl);
+                }
+                // Now that the UI is populated, trigger an initial update
+                onInputValueChange();
+            });
+
+            // 2. Listen for changes on our input field
+            $('#youtube-url').on('input', onInputValueChange);
         });
 
     </script>
