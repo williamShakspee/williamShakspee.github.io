@@ -1,69 +1,104 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-	<title>Image and Link Block (Working SDK Link)</title>
-	<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.0/jquery.min.js"></script>
-	<script src="https://cdnjs.cloudflare.com/ajax/libs/postscribe/2.0.8/postscribe.min.js"></script>
-    
-    <!-- THIS IS THE CORRECTED, WORKING SCRIPT LINK -->
-	<script src="https://raw.githack.com/salesforce-marketingcloud/blocksdk/master/blocksdk.js"></script>
-
+    <title>YouTube Video Block</title>
+    <meta charset="utf-8">
+    <style>
+        body { font-family: Arial, sans-serif; margin: 0; padding: 20px; color: #333; }
+        label { display: block; margin-bottom: 5px; font-weight: bold; }
+        input[type="text"] { width: 95%; padding: 8px; margin-bottom: 15px; border: 1px solid #ccc; border-radius: 4px; font-size: 14px; }
+        #status { font-style: italic; color: #555; }
+    </style>
+    <!-- Using the reliable, raw GitHub link for the SDK -->
+    <script src="https://raw.githack.com/salesforce-marketingcloud/blocksdk/master/blocksdk.js"></script>
 </head>
 <body>
-	Image. URL: <input type="text" id="image-url" />  
+    <label for="youtube-url">YouTube Video URL:</label>
+    <input type="text" id="youtube-url" placeholder="e.g., https://www.youtube.com/watch?v=...">
+    <div id="status">Enter a URL to generate the preview.</div>
 
-	Link URL: <input type="text" id="link-url" />
+    <script>
+        document.addEventListener('DOMContentLoaded', function ( ) {
+            
+            var sdk = new window.sfdc.BlockSDK();
+            var youtubeUrlInput = document.getElementById('youtube-url');
+            var statusDiv = document.getElementById('status');
+            var debounceTimeout;
 
-	<script>
-		var sdk = new window.sfdc.BlockSDK( );
-		var data = {};
+            // Function to get the YouTube video ID from various URL formats
+            function getYouTubeId(url) {
+                if (!url) return null;
+                var ID = '';
+                // This regex handles youtu.be, /watch, /v/, /embed/, and more
+                url = url.replace(/(>|<)/gi, '').split(/(vi\/|v=|\/v\/|youtu\.be\/|\/embed\/)/);
+                if (url[2] !== undefined) {
+                    ID = url[2].split(/[^0-9a-z_\-]/i);
+                    ID = ID[0];
+                } else {
+                    ID = url;
+                }
+                return ID;
+            }
 
-		function debounce (func, wait, immediate) {
-			var timeout;
-			return function() {
-				var context = this, args = arguments;
-				var later = function() {
-					timeout = null;
-					if (!immediate) func.apply(context, args);
-				};
-				var callNow = immediate && !timeout;
-				clearTimeout(timeout);
-				timeout = setTimeout(later, wait);
-				if (callNow) func.apply(context, args);
-			};
-		}
+            // Function that generates the final, email-safe HTML
+            function generateEmailHtml(url, videoId) {
+                if (!url || !videoId) {
+                    return '<div style="padding:20px; text-align:center; font-family: Arial, sans-serif;">Please provide a valid YouTube URL.</div>';
+                }
+                
+                // This is the email-safe content: a linked thumbnail image.
+                return `
+                    <table cellpadding="0" cellspacing="0" width="100%" role="presentation" style="min-width: 100%;" class="stylingblock-content-wrapper">
+                        <tr>
+                            <td class="stylingblock-content-wrapper camarker-inner" align="center">
+                                <a href="${url}" title="Watch Video" target="_blank" style="text-decoration: none; display: block;">
+                                    <img src="https://img.youtube.com/vi/${videoId}/0.jpg" alt="YouTube Video Thumbnail" width="100%" style="max-width: 600px; display: block; border: 0; height: auto;">
+                                </a>
+                            </td>
+                        </tr>
+                    </table>
+                `;
+            }
 
-		function paintSettings () {
-			document.getElementById('image-url').value = data.imageURL || '';
-			document.getElementById('link-url').value = data.linkURL || '';
-		}
+            // Main function to update the block's content and data
+            function updateBlock( ) {
+                var url = youtubeUrlInput.value;
+                var videoId = getYouTubeId(url);
+                
+                if (videoId) {
+                    statusDiv.textContent = 'Preview updated.';
+                } else if (url) {
+                    statusDiv.textContent = 'Invalid YouTube URL.';
+                } else {
+                    statusDiv.textContent = 'Enter a URL to generate the preview.';
+                }
 
-		function paintContent () {
-			var content = '';
-			if (data.imageURL) {
-				content = '<a href="' + (data.linkURL || '#') + '"><img src="' + data.imageURL + '" /></a>';
-			}
-			sdk.setContent(content);
-			sdk.setData(data);
-		}
+                var emailHtml = generateEmailHtml(url, videoId);
 
-		sdk.getData(function (d) {
-			if (d) {
-				data = d;
-			}
-			paintSettings();
-			paintContent();
-		});
+                // Set the content that gets saved into the email
+                sdk.setContent(emailHtml);
+                // Set the data that gets saved for when the block is re-opened
+                sdk.setData({ youtubeUrl: url });
+            }
 
-		document.getElementById('image-url').addEventListener('keyup', debounce(function (e) {
-			data.imageURL = e.target.value;
-			paintContent();
-		}, 500));
+            // Debounce function to prevent firing on every keystroke
+            function debounceUpdate() {
+                clearTimeout(debounceTimeout);
+                debounceTimeout = setTimeout(updateBlock, 500); // Wait 500ms after user stops typing
+            }
 
-		document.getElementById('link-url').addEventListener('keyup', debounce(function (e) {
-			data.linkURL = e.target.value;
-			paintContent();
-		}, 500));
-	</script>
+            // Load initial data from SFMC when the block is opened
+            sdk.getData(function (data) {
+                if (data && data.youtubeUrl) {
+                    youtubeUrlInput.value = data.youtubeUrl;
+                }
+                // Trigger an initial update to show the preview for any loaded data
+                updateBlock();
+            });
+
+            // Add an event listener to the input field
+            youtubeUrlInput.addEventListener('input', debounceUpdate);
+        });
+    </script>
 </body>
 </html>
