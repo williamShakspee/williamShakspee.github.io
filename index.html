@@ -1,9 +1,10 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <title>YouTube Video Block</title>
+    <title>Responsive YouTube Iframe Block</title>
     <meta charset="utf-8">
     <style>
+        /* Styling for the block's user interface in the editor */
         body { font-family: Arial, sans-serif; margin: 0; padding: 20px; color: #333; }
         label { display: block; margin-bottom: 5px; font-weight: bold; }
         input[type="text"] { width: 95%; padding: 8px; margin-bottom: 15px; border: 1px solid #ccc; border-radius: 4px; font-size: 14px; }
@@ -15,7 +16,7 @@
 <body>
     <label for="youtube-url">YouTube Video URL:</label>
     <input type="text" id="youtube-url" placeholder="e.g., https://www.youtube.com/watch?v=...">
-    <div id="status">Enter a URL to generate the preview.</div>
+    <div id="status">Enter a URL to generate the embed code.</div>
 
     <script>
         document.addEventListener('DOMContentLoaded', function ( ) {
@@ -25,11 +26,9 @@
             var statusDiv = document.getElementById('status');
             var debounceTimeout;
 
-            // Function to get the YouTube video ID from various URL formats
             function getYouTubeId(url) {
                 if (!url) return null;
                 var ID = '';
-                // This regex handles youtu.be, /watch, /v/, /embed/, and more
                 url = url.replace(/(>|<)/gi, '').split(/(vi\/|v=|\/v\/|youtu\.be\/|\/embed\/)/);
                 if (url[2] !== undefined) {
                     ID = url[2].split(/[^0-9a-z_\-]/i);
@@ -40,63 +39,86 @@
                 return ID;
             }
 
-            // Function that generates the final, email-safe HTML
-            function generateEmailHtml(url, videoId) {
-                if (!url || !videoId) {
+            // *** THIS IS THE MODIFIED PART ***
+            // This function now generates the responsive iframe HTML for a web page.
+            function generateWebHtml(videoId) {
+                if (!videoId) {
                     return '<div style="padding:20px; text-align:center; font-family: Arial, sans-serif;">Please provide a valid YouTube URL.</div>';
                 }
                 
-                // This is the email-safe content: a linked thumbnail image.
+                // The embed URL for YouTube. We can add parameters here if needed.
+                const embedUrl = `https://www.youtube.com/embed/${videoId}?rel=0&autoplay=0&mute=0`;
+
+                // The CSS required for the responsive container.
+                // This will be placed in the <head> of the CloudPage by SFMC.
+                const responsiveCss = `
+                    <style>
+                        .iframe-outer-wrapper {
+                            max-width: 800px; /* You can set a max-width for the video */
+                            margin: 0 auto; /* Center the container */
+                        }
+                        .iframe-container {
+                            position: relative;
+                            overflow: hidden;
+                            width: 100%;
+                            padding-top: 56.25%; /* 16:9 Aspect Ratio */
+                        }
+                        .iframe-container iframe {
+                            position: absolute;
+                            top: 0;
+                            left: 0;
+                            width: 100%;
+                            height: 100%;
+                            border: 0;
+                        }
+                    </style>
+                `;
+
+                // The final HTML structure including the CSS.
                 return `
-                    <table cellpadding="0" cellspacing="0" width="100%" role="presentation" style="min-width: 100%;" class="stylingblock-content-wrapper">
-                        <tr>
-                            <td class="stylingblock-content-wrapper camarker-inner" align="center">
-                                <a href="${url}" title="Watch Video" target="_blank" style="text-decoration: none; display: block;">
-                                    <img src="https://img.youtube.com/vi/${videoId}/0.jpg" alt="YouTube Video Thumbnail" width="100%" style="max-width: 600px; display: block; border: 0; height: auto;">
-                                </a>
-                            </td>
-                        </tr>
-                    </table>
+                    ${responsiveCss}
+                    <div class="iframe-outer-wrapper">
+                        <div class="iframe-container">
+                            <iframe src="${embedUrl}"
+                                    frameborder="0"
+                                    allow="autoplay; accelerometer; encrypted-media; gyroscope; fullscreen; picture-in-picture"
+                                    allowfullscreen>
+                            </iframe>
+                        </div>
+                    </div>
                 `;
             }
 
-            // Main function to update the block's content and data
             function updateBlock( ) {
                 var url = youtubeUrlInput.value;
                 var videoId = getYouTubeId(url);
                 
                 if (videoId) {
-                    statusDiv.textContent = 'Preview updated.';
+                    statusDiv.textContent = 'Embed code updated.';
                 } else if (url) {
                     statusDiv.textContent = 'Invalid YouTube URL.';
                 } else {
-                    statusDiv.textContent = 'Enter a URL to generate the preview.';
+                    statusDiv.textContent = 'Enter a URL to generate the embed code.';
                 }
 
-                var emailHtml = generateEmailHtml(url, videoId);
+                var webHtml = generateWebHtml(videoId);
 
-                // Set the content that gets saved into the email
-                sdk.setContent(emailHtml);
-                // Set the data that gets saved for when the block is re-opened
+                sdk.setContent(webHtml);
                 sdk.setData({ youtubeUrl: url });
             }
 
-            // Debounce function to prevent firing on every keystroke
             function debounceUpdate() {
                 clearTimeout(debounceTimeout);
-                debounceTimeout = setTimeout(updateBlock, 500); // Wait 500ms after user stops typing
+                debounceTimeout = setTimeout(updateBlock, 500);
             }
 
-            // Load initial data from SFMC when the block is opened
             sdk.getData(function (data) {
                 if (data && data.youtubeUrl) {
                     youtubeUrlInput.value = data.youtubeUrl;
                 }
-                // Trigger an initial update to show the preview for any loaded data
                 updateBlock();
             });
 
-            // Add an event listener to the input field
             youtubeUrlInput.addEventListener('input', debounceUpdate);
         });
     </script>
