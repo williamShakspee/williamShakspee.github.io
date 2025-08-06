@@ -75,7 +75,7 @@
                 var videoId = getYouTubeId(url);
                 
                 if (!videoId) {
-                    statusDiv.textContent = 'Please enter a valid YouTube URL.';
+                    statusDiv.textContent = 'Adicione um Link do Youtube';
                     sdk.setContent('<div style="padding:20px; text-align:center; font-family: Arial, sans-serif;">Please provide a valid YouTube URL.</div>');
                     sdk.setData({ youtubeUrl: url });
                     return;
