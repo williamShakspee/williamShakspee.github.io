@@ -1,18 +1,83 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="UTF-8" />
-    <title>Iframe Block</title>
-    <!-- Official SFMC Block SDK -->
+    <title>YouTube Custom Block</title>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+    <!-- Load the Content Builder SDK -->
     <script src="https://unpkg.com/blocksdk@1.2.2/blocksdk.js"></script>
 </head>
 <body>
-    <label for="iframe-url">Iframe URL:</label>
-    <input type="text" id="iframe-url" placeholder="https://example.com" style="width: 90%;" />
-    
-    <!-- The crucial Save button -->
-    <button id="save-button" type="button">Save</button>
+    <!-- This is the UI your user will see in the Content Builder editor -->
+    <div class="container" style="padding: 20px;">
+        <label for="youtube-url">YouTube Video URL:</label>
+        <input type="text" id="youtube-url" style="width: 100%; margin-top: 5px;" placeholder="https://www.youtube.com/watch?v=dQw4w9WgXcQ" />
+    </div>
 
-    <script src="https://cloud.somosfuncional.com/iframe-block-js"></script>
+    <script>
+        // Initialize the SDK
+        var sdk = new window.sfdc.BlockSDK( );
+
+        // Get the initial content from SFMC when the block loads
+        sdk.getData(function (data) {
+            // 'data' is what we saved last time. If it exists, populate our input.
+            if (data.youtubeUrl) {
+                $('#youtube-url').val(data.youtubeUrl);
+            }
+            // Call updateBlock to render the initial preview
+            updateBlock(data.youtubeUrl);
+        });
+
+        // Function to handle updating the block content
+        function updateBlock(url) {
+            if (!url) {
+                // If there's no URL, show a placeholder message
+                sdk.setContent('<div>Please enter a YouTube URL to see the video.</div>');
+                sdk.setData({ youtubeUrl: '' }); // Clear saved data
+                return;
+            }
+
+            // Extract the YouTube Video ID from the URL
+            // This regex handles both 'watch?v=' and 'youtu.be/' formats
+            let videoId = '';
+            const urlObj = new URL(url);
+            if (urlObj.hostname === 'youtu.be') {
+                videoId = urlObj.pathname.slice(1);
+            } else {
+                videoId = urlObj.searchParams.get('v');
+            }
+
+            if (!videoId) {
+                sdk.setContent('<div>Invalid YouTube URL. Please check and try again.</div>');
+                return;
+            }
+
+            // This is the HTML that will be inserted into the email
+            const content = `
+                <table cellpadding="0" cellspacing="0" width="100%" role="presentation" style="min-width: 100%; " class="stylingblock-content-wrapper">
+                    <tr>
+                        <td class="stylingblock-content-wrapper camarker-inner">
+                            <a href="${url}" title="YouTube Video" target="_blank">
+                                <img src="https://img.youtube.com/vi/${videoId}/0.jpg" alt="YouTube Video Thumbnail" width="100%" style="display: block;">
+                            </a>
+                        </td>
+                    </tr>
+                </table>
+            `;
+
+            // Send the generated HTML to SFMC to be displayed in the email
+            sdk.setContent(content );
+
+            // Save the URL so it can be retrieved next time the block is edited
+            sdk.setData({ youtubeUrl: url });
+        }
+
+        // --- Event Listeners ---
+        // Use 'input' to react instantly as the user types
+        $('#youtube-url').on('input', function() {
+            const url = $(this).val();
+            updateBlock(url);
+        });
+
+    </script>
 </body>
 </html>
