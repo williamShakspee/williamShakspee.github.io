@@ -18,9 +18,11 @@
     <label for="padding-input">Espaçamento</label>
     <input type="number" id="padding-input" value="0" min="0">
 
-    <label for="color-input">Cor do fundo</label>
-    <input type="color" id="color-input" value="#000000">
+    <label for="padding-input">Margem acima</label>
+    <input type="number" id="margin-input" value="0" min="0">
 
+    <label for="color-input">Cor do fundo</label>
+    <input type="color" id="color-input" value="#1b3862">
 
     <label for="max-width-input">Tamanho máximo</label>
     <input type="number" id="max-width-input" value="600" min="100">
@@ -33,6 +35,7 @@
             var paddingInput = document.getElementById('padding-input');
             var colorInput = document.getElementById('color-input');
             var maxWidthInput = document.getElementById('max-width-input');
+            var marginInput = document.getElementById('margin-input');
             var debounceTimeout;
 
             function getYouTubeId(url) {
@@ -48,7 +51,7 @@
                 return ID;
             }
 
-            function generateHtml(videoId, padding, backgroundColor, maxWidth) {
+            function generateHtml(videoId, padding, backgroundColor, maxWidth, marginInput) {
                 if (!videoId) {
                     return '<div style="padding:20px; text-align:center; font-family: Arial, sans-serif; color: #787878"> Adicione o link para visualizar a prévia</div>';
                 }
@@ -63,6 +66,7 @@
                             max-width: ${maxWidth}px;
                             width: 100%;
                             margin: 0 auto;
+                            margin-top: ${marginInput}px;
                         }
                         .youtube-wrapper {
                             padding: ${paddingValue};
@@ -91,7 +95,6 @@
                     </style>
                 `;
 
-                // The HTML structure remains the same, but is now controlled by the new CSS
                 return `
                     ${styles}
                     <div class="youtube-container">
@@ -111,20 +114,20 @@
             function updateBlock() {
                 var url = youtubeUrlInput.value;
                 var padding = parseInt(paddingInput.value, 10) || 0;
+                var margin = parseInt(marginInput.value, 10) || 0;
                 var backgroundColor = colorInput.value;
-                var maxWidth = parseInt(maxWidthInput.value, 10) || 600; // MODIFIED: Read from maxWidthInput
+                var maxWidth = parseInt(maxWidthInput.value, 10) || 600; 
                 var videoId = getYouTubeId(url);
                 
-                // MODIFIED: Pass maxWidth to the generateHtml function
-                var finalHtml = generateHtml(videoId, padding, backgroundColor, maxWidth);
+                var finalHtml = generateHtml(videoId, padding, backgroundColor, maxWidth, margin);
 
-                // MODIFIED: Save maxWidth to SFMC data
                 sdk.setContent(finalHtml);
                 sdk.setData({ 
                     youtubeUrl: url,
                     padding: padding,
                     backgroundColor: backgroundColor,
-                    maxWidth: maxWidth
+                    maxWidth: maxWidth,
+                    margin: margin
                 });
             }
 
@@ -133,7 +136,6 @@
                 debounceTimeout = setTimeout(updateBlock, 500);
             }
 
-            // MODIFIED: Retrieve saved maxWidth value on load
             sdk.getData(function (data) {
                 if (data) {
                     if (data.youtubeUrl) {
@@ -148,15 +150,18 @@
                     if (data.maxWidth) {
                         maxWidthInput.value = data.maxWidth;
                     }
+                     if (data.margin) {
+                        marginInput.value = data.margin;
+                    }
                 }
                 updateBlock();
             });
 
-            // MODIFIED: Added event listener for the new maxWidthInput
             youtubeUrlInput.addEventListener('input', debounceUpdate);
             paddingInput.addEventListener('input', debounceUpdate);
             colorInput.addEventListener('input', debounceUpdate);
             maxWidthInput.addEventListener('input', debounceUpdate);
+            marginInput.addEventListener('input', debounceUpdate);
         });
     </script>
 </body>
