@@ -71,7 +71,7 @@
 
                 params.push('rel=1');
 
-                 if (isAutoplay) {
+                 if (autoplayInput) {
                 params.push('autoplay=1');
                 params.push('mute=1');
                 }
@@ -179,6 +179,9 @@
                      if (data.margin) {
                         marginInput.value = data.margin;
                     }
+                       if (data.isAutoplay) {
+                        autoplayInput.checked = data.isAutoplay;
+        }
                 }
                 updateBlock();
             });
