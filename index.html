@@ -5,44 +5,75 @@
     <meta charset="utf-8">
     <style>
         body { font-family: Arial, sans-serif; margin: 0; padding: 20px; color: #333; }
+        .control-group { margin-bottom: 15px; }
         label { display: block; margin-bottom: 5px; font-weight: bold; }
-        input[type="text"], input[type="number"] { width: 95%; padding: 8px; margin-bottom: 15px; border: 1px solid #ccc; border-radius: 4px; font-size: 14px; }
-        input[type="color"] { width: 60px; height: 30px; padding: 2px; margin-bottom: 15px; border: 1px solid #ccc; border-radius: 4px; vertical-align: middle; }
+        input[type="text"], input[type="number"] { width: 95%; padding: 8px; margin-bottom: 5px; border: 1px solid #ccc; border-radius: 4px; font-size: 14px; }
+        input[type="color"] { width: 60px; height: 30px; padding: 2px; border: 1px solid #ccc; border-radius: 4px; vertical-align: middle; }
+        .checkbox-label { font-weight: normal; display: inline-block; margin-left: 5px; }
     </style>
     <script src="https://raw.githack.com/salesforce-marketingcloud/blocksdk/master/blocksdk.js"></script>
 </head>
 <body>
-    <label for="youtube-url">Link do Youtube</label>
-    <input type="text" id="youtube-url" placeholder="e.g., https://www.youtube.com/watch?v=...">
+    <div class="control-group">
+        <label for="youtube-url">Link do Youtube</label>
+        <input type="text" id="youtube-url" placeholder="e.g., https://www.youtube.com/watch?v=...">
+    </div>
 
-    <label for="autoplay-checkbox">Autoplay</label>
-    <input type="checkbox" id="autoplay-checkbox">
+    <div class="control-group">
+        <input type="checkbox" id="autoplay-checkbox">
+        <label for="autoplay-checkbox" class="checkbox-label">Autoplay</label>
+    </div>
 
-    <label for="padding-input">Espaçamento</label>
-    <input type="number" id="padding-input" value="0" min="0">
+    <div class="control-group">
+        <input type="checkbox" id="mute-checkbox">
+        <label for="mute-checkbox" class="checkbox-label">Mute</label>
+    </div>
 
-    <label for="padding-input">Margem acima</label>
-    <input type="number" id="margin-input" value="0" min="0">
+    <div class="control-group">
+        <input type="checkbox" id="loop-checkbox">
+        <label for="loop-checkbox" class="checkbox-label">Loop</label>
+    </div>
 
-    <label for="color-input">Cor do fundo</label>
-    <input type="color" id="color-input" value="#1b3862">
+    <div class="control-group">
+        <input type="checkbox" id="controls-checkbox">
+        <label for="controls-checkbox" class="checkbox-label">Hide Player Controls</label>
+    </div>
 
-    <label for="max-width-input">Tamanho máximo</label>
-    <input type="number" id="max-width-input" value="600" min="100">
+    <div class="control-group">
+        <label for="padding-input">Espaçamento (padding )</label>
+        <input type="number" id="padding-input" value="0" min="0">
+    </div>
 
-    
+    <div class="control-group">
+        <label for="margin-input">Margem acima (margin-top)</label>
+        <input type="number" id="margin-input" value="0" min="0">
+    </div>
 
+    <div class="control-group">
+        <label for="color-input">Cor do fundo</label>
+        <input type="color" id="color-input" value="#FFFFFF">
+    </div>
+
+    <div class="control-group">
+        <label for="max-width-input">Tamanho máximo (max-width)</label>
+        <input type="number" id="max-width-input" value="600" min="100">
+    </div>
 
     <script>
         document.addEventListener('DOMContentLoaded', function () {
-            
             var sdk = new window.sfdc.BlockSDK();
+            
+            // --- Get all UI elements ---
             var youtubeUrlInput = document.getElementById('youtube-url');
             var paddingInput = document.getElementById('padding-input');
             var colorInput = document.getElementById('color-input');
             var maxWidthInput = document.getElementById('max-width-input');
             var marginInput = document.getElementById('margin-input');
-            var autoplayInput = document.getElementById('autoplay-checkbox');
+            var autoplayCheckbox = document.getElementById('autoplay-checkbox');
+            var muteCheckbox = document.getElementById('mute-checkbox');
+            var loopCheckbox = document.getElementById('loop-checkbox');
+            var controlsCheckbox = document.getElementById('controls-checkbox');
+            
             var debounceTimeout;
 
             function getYouTubeId(url) {
@@ -58,63 +89,45 @@
                 return ID;
             }
 
-            function generateHtml(videoId, padding, backgroundColor, maxWidth, marginInput, autoplayInput) {
+            function generateHtml(videoId, padding, backgroundColor, maxWidth, margin, isAutoplay, isMuted, isLoop, hideControls) {
                 if (!videoId) {
                     return '<div style="padding:20px; text-align:center; font-family: Arial, sans-serif; color: #787878"> Adicione o link para visualizar a prévia</div>';
                 }
                 
                 let embedUrl = `https://www.youtube.com/embed/${videoId}`;
-
-                // URL Parameters Logic
-
                 const params = [];
+                params.push('rel=0' ); // Always limit related videos to the same channel
 
-                params.push('rel=1');
-
-                 if (autoplayInput) {
-                params.push('autoplay=1');
-                params.push('mute=1');
+                if (isAutoplay) {
+                    params.push('autoplay=1');
+                }
+                // Mute can be true for autoplay or on its own
+                if (isMuted) {
+                    params.push('mute=1');
+                }
+                if (isLoop) {
+                    params.push('loop=1');
+                    params.push(`playlist=${videoId}`); // Loop requires playlist parameter
+                }
+                if (hideControls) {
+                    params.push('controls=0');
                 }
 
-                embedUrl += '?' + params.join('&');
-
-                // End URL Parameters Logic
+                if (params.length > 0) {
+                    embedUrl += '?' + params.join('&');
+                }
 
                 const thumbnailUrl = `https://img.youtube.com/vi/${videoId}/0.jpg`;
                 const paddingValue = `${padding}px`;
+                const marginValue = `${margin}px`;
 
                 const styles = `
                     <style>
-                        .youtube-container {
-                            max-width: ${maxWidth}px;
-                            width: 100%;
-                            margin: 0 auto;
-                            margin-top: ${marginInput}px;
-                        }
-                        .youtube-wrapper {
-                            padding: ${paddingValue};
-                            background-color: ${backgroundColor};
-                        }
-                        .youtube-inner-wrapper {
-                            position: relative;
-                            width: 100%;
-                            height: 0;
-                            padding-bottom: 56.25%;
-                            background-image: url(${thumbnailUrl} );
-                            background-position: center;
-                            background-size: cover;
-                        }
-                        .youtube-inner-wrapper iframe {
-                            position: absolute;
-                            top: 0;
-                            left: 0;
-                            width: 100%;
-                            height: 100%;
-                            border: 0;
-                        }
-                        .sfmc-canvas-wrapper .youtube-inner-wrapper iframe {
-                            display: none;
-                        }
+                        .youtube-container { max-width: ${maxWidth}px; width: 100%; margin: 0 auto; margin-top: ${marginValue}; }
+                        .youtube-wrapper { padding: ${paddingValue}; background-color: ${backgroundColor}; }
+                        .youtube-inner-wrapper { position: relative; width: 100%; height: 0; padding-bottom: 56.25%; background-image: url(${thumbnailUrl} ); background-position: center; background-size: cover; }
+                        .youtube-inner-wrapper iframe { position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: 0; }
+                        .sfmc-canvas-wrapper .youtube-inner-wrapper iframe { display: none; }
                     </style>
                 `;
 
@@ -124,6 +137,7 @@
                         <div class="youtube-wrapper">
                             <div class="youtube-inner-wrapper">
                                 <iframe src="${embedUrl}"
+                                        title="YouTube video player"
                                         frameborder="0"
                                         allow="autoplay; accelerometer; encrypted-media; gyroscope; fullscreen; picture-in-picture"
                                         allowfullscreen>
@@ -131,67 +145,89 @@
                             </div>
                         </div>
                     </div>
-                    <div> <p>${embedUrl}</p> </div>
                 `;
             }
 
             function updateBlock() {
                 var url = youtubeUrlInput.value;
-                var padding = parseInt(paddingInput.value, 10) || 0;
-                var margin = parseInt(marginInput.value, 10) || 0;
-                var backgroundColor = colorInput.value;
-                var maxWidth = parseInt(maxWidthInput.value, 10) || 600; 
                 var videoId = getYouTubeId(url);
-                var isAutoplay = autoplayInput.checked;
                 
-                var finalHtml = generateHtml(videoId, padding, backgroundColor, maxWidth, margin, isAutoplay);
+                var finalHtml = generateHtml(
+                    videoId,
+                    parseInt(paddingInput.value, 10) || 0,
+                    colorInput.value,
+                    parseInt(maxWidthInput.value, 10) || 600,
+                    parseInt(marginInput.value, 10) || 0,
+                    autoplayCheckbox.checked,
+                    muteCheckbox.checked,
+                    loopCheckbox.checked,
+                    controlsCheckbox.checked
+                );
 
                 sdk.setContent(finalHtml);
                 sdk.setData({ 
                     youtubeUrl: url,
-                    padding: padding,
-                    backgroundColor: backgroundColor,
-                    maxWidth: maxWidth,
-                    margin: margin,
-                    isAutoplay: isAutoplay
+                    padding: parseInt(paddingInput.value, 10) || 0,
+                    backgroundColor: colorInput.value,
+                    maxWidth: parseInt(maxWidthInput.value, 10) || 600,
+                    margin: parseInt(marginInput.value, 10) || 0,
+                    isAutoplay: autoplayCheckbox.checked,
+                    isMuted: muteCheckbox.checked,
+                    isLoop: loopCheckbox.checked,
+                    hideControls: controlsCheckbox.checked
                 });
+            }
+
+            function handleAutoplayChange() {
+                if (autoplayCheckbox.checked) {
+                    // If autoplay is checked, force mute to be checked and disable it
+                    muteCheckbox.checked = true;
+                    muteCheckbox.disabled = true;
+                } else {
+                    // If autoplay is unchecked, re-enable the mute checkbox
+                    muteCheckbox.disabled = false;
+                }
+                // Update the block whenever this logic runs
+                debounceUpdate();
             }
 
             function debounceUpdate() {
                 clearTimeout(debounceTimeout);
-                debounceTimeout = setTimeout(updateBlock, 500);
+                debounceTimeout = setTimeout(updateBlock, 300);
             }
 
             sdk.getData(function (data) {
                 if (data) {
-                    if (data.youtubeUrl) {
-                        youtubeUrlInput.value = data.youtubeUrl;
-                    }
-                    if (data.padding) {
-                        paddingInput.value = data.padding;
-                    }
-                    if (data.backgroundColor) {
-                        colorInput.value = data.backgroundColor;
-                    }
-                    if (data.maxWidth) {
-                        maxWidthInput.value = data.maxWidth;
-                    }
-                     if (data.margin) {
-                        marginInput.value = data.margin;
-                    }
-                       if (data.isAutoplay) {
-                        autoplayInput.checked = data.isAutoplay;
-        }
+                    youtubeUrlInput.value = data.youtubeUrl || '';
+                    paddingInput.value = data.padding || 0;
+                    colorInput.value = data.backgroundColor || '#FFFFFF';
+                    maxWidthInput.value = data.maxWidth || 600;
+                    marginInput.value = data.margin || 0;
+                    autoplayCheckbox.checked = data.isAutoplay || false;
+                    muteCheckbox.checked = data.isMuted || false;
+                    loopCheckbox.checked = data.isLoop || false;
+                    controlsCheckbox.checked = data.hideControls || false;
                 }
+                // Run this once on load to set the initial state of the mute checkbox
+                handleAutoplayChange(); 
+                // Then run a final update to ensure the preview is correct
                 updateBlock();
             });
 
+            // --- Event Listeners ---
             youtubeUrlInput.addEventListener('input', debounceUpdate);
             paddingInput.addEventListener('input', debounceUpdate);
             colorInput.addEventListener('input', debounceUpdate);
             maxWidthInput.addEventListener('input', debounceUpdate);
             marginInput.addEventListener('input', debounceUpdate);
-            autoplayInput.addEventListener('input', debounceUpdate);
+            
+            // Special handling for autoplay
+            autoplayCheckbox.addEventListener('change', handleAutoplayChange);
+
+            // Standard listeners for the other checkboxes
+            muteCheckbox.addEventListener('change', debounceUpdate);
+            loopCheckbox.addEventListener('change', debounceUpdate);
+            controlsCheckbox.addEventListener('change', debounceUpdate);
         });
     </script>
 </body>
