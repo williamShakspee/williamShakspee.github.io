@@ -26,7 +26,7 @@
 
     <div class="control-group">
         <input type="checkbox" id="mute-checkbox">
-        <label for="mute-checkbox" class="checkbox-label">Mudo</label>
+        <label for="mute-checkbox" class="checkbox-label">Mute</label>
     </div>
 
     <div class="control-group">
@@ -36,26 +36,26 @@
 
     <div class="control-group">
         <input type="checkbox" id="controls-checkbox">
-        <label for="controls-checkbox" class="checkbox-label">Esconder Controles</label>
+        <label for="controls-checkbox" class="checkbox-label">Hide Controls</label>
     </div>
 
     <div class="control-group">
-        <label for="padding-input">Espaçamento</label>
+        <label for="padding-input">Padding</label>
         <input type="number" id="padding-input" value="0" min="0">
     </div>
 
     <div class="control-group">
-        <label for="margin-input">Margem acima</label>
+        <label for="margin-input">Upper Spacing</label>
         <input type="number" id="margin-input" value="0" min="0">
     </div>
 
     <div class="control-group">
-        <label for="color-input">Cor do fundo</label>
+        <label for="color-input">Background Color</label>
         <input type="color" id="color-input" value="#FFFFFF">
     </div>
 
     <div class="control-group">
-        <label for="max-width-input">Tamanho máximo</label>
+        <label for="max-width-input">Maximum Width</label>
         <input type="number" id="max-width-input" value="600" min="100">
     </div>
 
@@ -63,7 +63,6 @@
         document.addEventListener('DOMContentLoaded', function () {
             var sdk = new window.sfdc.BlockSDK();
             
-            // --- Get all UI elements ---
             var youtubeUrlInput = document.getElementById('youtube-url');
             var paddingInput = document.getElementById('padding-input');
             var colorInput = document.getElementById('color-input');
@@ -91,23 +90,23 @@
 
             function generateHtml(videoId, padding, backgroundColor, maxWidth, margin, isAutoplay, isMuted, isLoop, hideControls) {
                 if (!videoId) {
-                    return '<div style="padding:20px; text-align:center; font-family: Arial, sans-serif; color: #787878"> Adicione o link para visualizar a prévia</div>';
+                    return '<div style="padding:20px; text-align:center; font-family: Arial, sans-serif; color: #787878"> Add the link to see the preview</div>';
                 }
                 
                 let embedUrl = `https://www.youtube.com/embed/${videoId}`;
                 const params = [];
-                params.push('rel=0' ); // Always limit related videos to the same channel
+                params.push('rel=0' ); 
 
                 if (isAutoplay) {
                     params.push('autoplay=1');
                 }
-                // Mute can be true for autoplay or on its own
+
                 if (isMuted) {
                     params.push('mute=1');
                 }
                 if (isLoop) {
                     params.push('loop=1');
-                    params.push(`playlist=${videoId}`); // Loop requires playlist parameter
+                    params.push(`playlist=${videoId}`); 
                 }
                 if (hideControls) {
                     params.push('controls=0');
@@ -180,14 +179,13 @@
 
             function handleAutoplayChange() {
                 if (autoplayCheckbox.checked) {
-                    // If autoplay is checked, force mute to be checked and disable it
                     muteCheckbox.checked = true;
                     muteCheckbox.disabled = true;
                 } else {
-                    // If autoplay is unchecked, re-enable the mute checkbox
+
                     muteCheckbox.disabled = false;
                 }
-                // Update the block whenever this logic runs
+
                 debounceUpdate();
             }
 
@@ -208,23 +206,16 @@
                     loopCheckbox.checked = data.isLoop || false;
                     controlsCheckbox.checked = data.hideControls || false;
                 }
-                // Run this once on load to set the initial state of the mute checkbox
                 handleAutoplayChange(); 
-                // Then run a final update to ensure the preview is correct
                 updateBlock();
             });
 
-            // --- Event Listeners ---
             youtubeUrlInput.addEventListener('input', debounceUpdate);
             paddingInput.addEventListener('input', debounceUpdate);
             colorInput.addEventListener('input', debounceUpdate);
             maxWidthInput.addEventListener('input', debounceUpdate);
             marginInput.addEventListener('input', debounceUpdate);
-            
-            // Special handling for autoplay
             autoplayCheckbox.addEventListener('change', handleAutoplayChange);
-
-            // Standard listeners for the other checkboxes
             muteCheckbox.addEventListener('change', debounceUpdate);
             loopCheckbox.addEventListener('change', debounceUpdate);
             controlsCheckbox.addEventListener('change', debounceUpdate);
